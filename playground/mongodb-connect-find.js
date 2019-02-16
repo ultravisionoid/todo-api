@@ -25,7 +25,7 @@ MongoClient.connect("mongodb://localhost:27017/ToDoApp",(err,db)=>{
 	// 	conosle.log("unable to fetch"+err)
 	// });
 
-	db.collection("users").find({'name':"aayush"})
+	db.collection("users").find({'name':"aayush"}esz)
 	.toArray().then((docs) => {
 		console.log("todos count:"+JSON.stringify(docs,undefined,2));
 		
