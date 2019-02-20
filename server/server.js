@@ -49,6 +49,38 @@ app.get("/todos/:id",(req,res)=>{
 
 })
 
+app.delete("/todos/:id",(req,res)=>{
+	var id  = req.params.id;
+	if(!ObjectID.isValid(id)){
+		return res.status(404).send("Not found1");
+	}
+	// Todo.findById(id).then((todo)=>{
+	// 	if(!todo){
+	// 		return res.status(404).send("Not found2");
+	// 	}
+	// 	res.status(200).send(todo);
+	// 	Todo.findOneAndRemove({_id:id}).then((doc)=>{
+	// 		if(!todo){
+	// 			return res.status.send("not found")
+	// 		}
+	// 		// res.send("dfd"+doc);
+	// 	}).catch((e)=>{
+	// 		res.send("not foundc")
+	// 	})
+
+	// }).catch((e)=>{
+	// 	res.status(404).send("Not found3");
+	// })
+	Todo.findOneAndRemove({_id:id},(err,doc)=>{
+		if(!doc)
+			return res.status(404).send("Not found");
+		return res.status(200).send(doc);
+	})
+	
+
+
+})
+
 app.listen(port,()=>{
 	console.log("started on port"+port);
 })
