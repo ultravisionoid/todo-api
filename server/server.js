@@ -74,7 +74,8 @@ app.delete("/todos/:id",(req,res)=>{
 	Todo.findOneAndRemove({_id:id},(err,doc)=>{
 		if(!doc)
 			return res.status(404).send("Not found");
-		return res.status(200).send(doc);
+		return res.status(200).send({
+			todo:doc});
 	})
 	
 
