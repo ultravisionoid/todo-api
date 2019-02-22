@@ -7,7 +7,7 @@ const {ObjectID}=require("mongodb");
 
 var  {mongoose}=require("./db/mongoose");
 var {Todo}=require('./db/models/todo');
-var {user}=require('./db/models/user');
+var {User}=require('./db/models/user');
 
 var app = express();
 const port = process.env.PORT ;
@@ -93,6 +93,28 @@ app.patch("/todos/:id",(req,res)=>{
 
 
 });
+
+app.post("/users",(req,res)=>{
+	var body = _.pick(req.body,["email","password"])
+	// console.log(body);
+	var	user = new User({
+		email:body.email,
+		password:body.password
+	});
+	// console.log(user.password)
+	user.save().then(()=>{
+	//	res.send(user);
+		return user.generateAuthToken();
+
+	}).then((token)=>{
+		return res.header('x-auth',token).send(user);
+	})
+	.catch((e)=>{
+		res.status(400).send(e);
+	})
+
+})
+
 
 app.listen(port,()=>{
 	console.log("started on port"+port);
