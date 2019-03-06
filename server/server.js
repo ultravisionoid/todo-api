@@ -16,9 +16,10 @@ const port = process.env.PORT ;
 
 app.use(bodyParser.json());
 
-app.post("/todos",(req,res)=>{
+app.post("/todos",authenticate,(req,res)=>{
 	var todo = new Todo({
-		text :req.body.text
+		text :req.body.text,
+		_creator:req.user._id
 	})
 	console.log(req.body);
 
@@ -30,19 +31,24 @@ app.post("/todos",(req,res)=>{
 	});
 });
 
-app.get("/todos",(req,res)=>{
-	Todo.find().then((todos)=>{
+app.get("/todos",authenticate,(req,res)=>{
+	Todo.find({
+		_creator:req.user._id
+	}).then((todos)=>{
 		res.send({todos});
 	},(e)=>{
 		res.status(400).send(e);
 	})
 });;
-app.get("/todos/:id",(req,res)=>{
+app.get("/todos/:id",authenticate,(req,res)=>{
 	var id = req.params.id;
 	if(!ObjectID.isValid(id)){
 		return res.status(404).send("Not found1");
 	}
-	Todo.findById(id).then((todo)=>{
+	Todo.findOne({
+		_id:id,
+		_creator:req.user._id
+	}).then((todo)=>{
 		if(!todo){
 			return res.status(404).send("Not found2");
 		}
@@ -53,12 +59,15 @@ app.get("/todos/:id",(req,res)=>{
 
 })
 
-app.delete("/todos/:id",(req,res)=>{
+app.delete("/todos/:id",authenticate,(req,res)=>{
 	var id  = req.params.id;
 	if(!ObjectID.isValid(id)){
 		return res.status(404).send("Not found1");
 	}
-	Todo.findOneAndRemove({_id:id},(err,doc)=>{
+	Todo.findOneAndRemove({
+		_id:id,
+		_creator:req.user._id
+	},(err,doc)=>{
 		if(!doc)
 			return res.status(404).send("Not found");
 		return res.status(200).send({
@@ -69,7 +78,7 @@ app.delete("/todos/:id",(req,res)=>{
 
 })
 
-app.patch("/todos/:id",(req,res)=>{
+app.patch("/todos/:id",authenticate,(req,res)=>{
 	var id = req.params.id;
 	var body = _.pick(req.body,["text","completed"])
 	
@@ -83,7 +92,10 @@ app.patch("/todos/:id",(req,res)=>{
 		body.completedat = null;
 
 	}
-	Todo.findByIdAndUpdate(id,{$set: body},{new:true}).then((todo)=>{
+	Todo.findOneAndUpdate({
+		_id:id,
+		_creator:req.user._id}
+		,{$set: body},{new:true}).then((todo)=>{
 		if(!todo)
 			return res.status(404).send();
 		res.send({todo});
@@ -98,7 +110,7 @@ app.post("/users",(req,res)=>{
 	var	user = new User({
 		email:body.email,
 		password:body.password
-	});
+	});4
 	// console.log(user.password)
 	user.save().then(()=>{
 	//	res.send(user);
@@ -118,9 +130,9 @@ app.post("/users",(req,res)=>{
 app.get("/users/me",authenticate,(req,res)=>{
 	res.status(200).send(req.user);
 })
-app.listen(port,()=>{
-	console.log("started on port"+port);
-})
+
+
+
 app.post("/users/login",(req,res)=>{
 	var body = _.pick(req.body,["email","password"])
 	
@@ -135,6 +147,25 @@ app.post("/users/login",(req,res)=>{
 	})
 
 })
+
+app.delete("/users/me/token",authenticate,(req,res)=>{
+	req.user.removeToken(req.token).then(()=>{
+		return	res.status(200).send();
+	},()=>{
+		return res.status(400).send();
+	})
+});
+
+
+
+
+
+
+app.listen(port,()=>{
+	console.log("started on port"+port);
+})
+
+
 module.exports={app};
 
 
