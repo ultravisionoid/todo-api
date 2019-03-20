@@ -19,7 +19,8 @@ app.use(bodyParser.json());
 app.post("/todos",authenticate,(req,res)=>{
 	var todo = new Todo({
 		text :req.body.text,
-		_creator:req.user._id
+		_creator:req.user._id,
+		completed:req.body.completed||false
 	})
 	console.log(req.body);
 
@@ -31,15 +32,29 @@ app.post("/todos",authenticate,(req,res)=>{
 	});
 });
 
-app.get("/todos",authenticate,(req,res)=>{
-	Todo.find({
-		_creator:req.user._id
-	}).then((todos)=>{
-		res.send({todos});
-	},(e)=>{
-		res.status(400).send(e);
-	})
-});;
+app.get("/todos",authenticate,async(req,res)=>{
+	const match={};
+	if(req.query.completed){
+		match.completed=req.query.completed==="true";
+
+	}
+	try{
+		await req.user.populate({
+			path:"todos",
+			match,
+			options:{
+				limit:parseInt(req.query.limit),
+				skip:parseInt(req.query.skip)
+			}
+		})
+		.execPopulate()
+		res.send(req.user.todos)
+	}catch(e){
+		res.status(500).send(e);
+	}
+
+
+});
 app.get("/todos/:id",authenticate,(req,res)=>{
 	var id = req.params.id;
 	if(!ObjectID.isValid(id)){
@@ -110,7 +125,7 @@ app.post("/users",(req,res)=>{
 	var	user = new User({
 		email:body.email,
 		password:body.password
-	});4
+	});
 	// console.log(user.password)
 	user.save().then(()=>{
 	//	res.send(user);
@@ -155,12 +170,18 @@ app.delete("/users/me/token",authenticate,(req,res)=>{
 		return res.status(400).send();
 	})
 });
+const main= async()=>{
 
+	// const user=await User.findById("5c90e66102810e27a8bbcbb6");
+	// // console.log(user);
+	// await user.populate("todos").execPopulate();
 
+	// console.log(user.todos);
+	// console.log(1331);
 
+}
 
-
-
+main()
 app.listen(port,()=>{
 	console.log("started on port"+port);
 })

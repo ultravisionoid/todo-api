@@ -31,8 +31,14 @@ var UserSchema = new mongoose.Schema({
       required: true
     }
   }]
+},{
+	timestamps:true
 });
-
+UserSchema.virtual("todos",{
+	ref:"Todo",
+	localField:"_id",
+	foreignField:"_creator"
+})
 UserSchema.methods.toJSON = function () {
   var user = this;
   var userObject = user.toObject();
@@ -43,7 +49,7 @@ UserSchema.methods.toJSON = function () {
 UserSchema.methods.generateAuthToken = function () {
   var user = this;
   var access = 'auth';
-  var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET).toString();
+  var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET.toString()).toString();
 
   // user.tokens.push({access, token});
   user.tokens=user.tokens.concat([{access,token}]);
@@ -55,7 +61,7 @@ UserSchema.statics.findByToken=function(token){
 	var User = this;
 	var decoded;
 	try{
-		decoded = jwt.verify(token,process.env.JWT_SECRET);
+		decoded = jwt.verify(token,process.env.JWT_SECRET.toString());
 	}catch(e){
 		// return new Promise((resolve,reject)=>{
 		// 	reject();
@@ -125,3 +131,5 @@ UserSchema.pre("save",function(next){
 var User = mongoose.model('User', UserSchema);
 
 module.exports = {User}
+//mongodb://:@:/
+//361
