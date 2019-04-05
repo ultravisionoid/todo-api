@@ -4,6 +4,8 @@ const _ = require("lodash");
 const express = require("express");
 const bodyParser = require("body-parser");
 const {ObjectID}=require("mongodb");
+const sharp = require("sharp");
+const multer = require("multer");//for uploading files
 
 var  {mongoose}=require("./db/mongoose");
 var {Todo}=require('./db/models/todo');
@@ -34,9 +36,15 @@ app.post("/todos",authenticate,(req,res)=>{
 
 app.get("/todos",authenticate,async(req,res)=>{
 	const match={};
+	const sort={};
+
 	if(req.query.completed){
 		match.completed=req.query.completed==="true";
 
+	}
+	if(req.query.sortby){
+		const parts=req.query.sortby.split(":");
+		sort[parts[0]]=parts[1]==="desc"?-1:1;
 	}
 	try{
 		await req.user.populate({
@@ -44,7 +52,10 @@ app.get("/todos",authenticate,async(req,res)=>{
 			match,
 			options:{
 				limit:parseInt(req.query.limit),
-				skip:parseInt(req.query.skip)
+				skip:parseInt(req.query.skip),
+				sort:{
+					createdAt:-1
+				}
 			}
 		})
 		.execPopulate()
@@ -142,6 +153,8 @@ app.post("/users",(req,res)=>{
 
 
 
+
+
 app.get("/users/me",authenticate,(req,res)=>{
 	res.status(200).send(req.user);
 })
@@ -170,18 +183,93 @@ app.delete("/users/me/token",authenticate,(req,res)=>{
 		return res.status(400).send();
 	})
 });
-const main= async()=>{
+// const main= async()=>{
 
-	// const user=await User.findById("5c90e66102810e27a8bbcbb6");
-	// // console.log(user);
-	// await user.populate("todos").execPopulate();
+// 	// const user=await User.findById("5c90e66102810e27a8bbcbb6");
+// 	// // console.log(user);
+// 	// await user.populate("todos").execPopulate();
 
-	// console.log(user.todos);
-	// console.log(1331);
+// 	// console.log(user.todos);
+// 	// console.log(1331);
 
+// }
+
+// main()
+
+
+
+const upload = multer({
+	dest:"upload",
+	limits:{
+		fileSize:1000000
+	},
+	fileFilter(req,file,cb){
+		if(!file.originalname.match(/\.(doc|docx)$/)){
+			return cb(new Error("please upload a word document"));
+		}
+		cb(undefined,true);
+	}
+
+});
+
+const errorMiddleware=(req,res,next)=>{
+	throw new Error("From my middleware");
 }
 
-main()
+const avatar=multer({
+	limits:{
+		fileSize:1000000
+	},
+	fileFilter(req,file,cb){
+		if(!file.originalname.match(/\.(jpg|jpeg|png)$/)){
+			return cb(new Error("please upload image file"));
+		}
+		cb(undefined,true);
+	}
+})
+app.post("/upload",upload.single("upload"),(req,res)=>{
+	res.status(200).send();
+},(error,req,res,next)=>{
+	res.status(400).send({error:error.message});
+})
+
+app.post("/users/me/avatar",authenticate,avatar.single("avatar"),async (req,res)=>{
+
+	const buffer=await sharp(req.file.buffer).resize({width:250,height:250}).png().toBuffer();
+	req.user.avatar=buffer;
+	await req.user.save();
+	res.send();
+},(error,req,res,next)=>{
+	res.status(400).send({error:error.message});
+})
+
+
+app.delete("/users/me/avatar",authenticate,(req,res)=>{
+	req.user.avatar=undefined;
+	req.user.save();
+	res.send();
+})
+
+app.get('/users/:id/avatar',async(req,res)=>{
+	try{
+		const user=  await User.findById(req.params.id);
+		if(!user || !user.avatar){
+			throw new Error
+
+		}
+		res.set("Content-Type","image/png")
+		res.send(user.avatar)
+
+
+	}catch(e){
+		res.status(404).send(e);
+	}
+})
+
+
+
+
+
 app.listen(port,()=>{
 	console.log("started on port"+port);
 })
