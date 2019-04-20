@@ -3,6 +3,7 @@ const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
 const bcrypt = require("bcryptjs");
+const {Todo} = require("./todo.js");
 
 var UserSchema = new mongoose.Schema({
   email: {
@@ -15,6 +16,10 @@ var UserSchema = new mongoose.Schema({
       validator: validator.isEmail,
       message: '{VALUE} is not a valid email'
     }
+  },
+  name:{
+  	type:String,
+  	required:true
   },
   password: {
     type: String,
@@ -129,10 +134,12 @@ UserSchema.pre("save",function(next){
 	}
 })
 
-
+UserSchema.pre('remove', async function(next){
+    const user = this;
+    await Todo.deleteMany({_creator:user._id});
+    next();
+})
 
 var User = mongoose.model('User', UserSchema);
 
 module.exports = {User}
-//mongodb://:@:/
-//361

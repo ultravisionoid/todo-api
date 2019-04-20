@@ -11,9 +11,10 @@ var  {mongoose}=require("./db/mongoose");
 var {Todo}=require('./db/models/todo');
 var {User}=require('./db/models/user');
 var {authenticate}=require("./middleware/authenticate.js");
-
+var {sendWelcomeEmail,sendCancelationEmail}=require("./emails/accounts.js");
 var app = express();
 const port = process.env.PORT ;
+
 
 
 app.use(bodyParser.json());
@@ -131,15 +132,17 @@ app.patch("/todos/:id",authenticate,(req,res)=>{
 });
 
 app.post("/users",(req,res)=>{
-	var body = _.pick(req.body,["email","password"])
+	var body = req.body
 	// console.log(body);
 	var	user = new User({
 		email:body.email,
-		password:body.password
+		password:body.password,
+		name:body.name
 	});
 	// console.log(user.password)
 	user.save().then(()=>{
 	//	res.send(user);
+		sendWelcomeEmail(user.email,user.name);
 		return user.generateAuthToken();
 
 	}).then((token)=>{
@@ -174,6 +177,16 @@ app.post("/users/login",(req,res)=>{
 		res.status(400).send(e);
 	})
 
+})
+
+app.delete("/users/me",authenticate,async(req,res)=>{
+	try{
+		await req.user.remove();
+		sendCancelationEmail(req.user.email,req.user.name);
+		res.status(200).send(req.user);
+	}catch(e){
+		res.status(400).send(e);
+	}
 })
 
 app.delete("/users/me/token",authenticate,(req,res)=>{
