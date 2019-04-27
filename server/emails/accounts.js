@@ -1,8 +1,7 @@
 const sgMail=require("@sendgrid/mail");
 
-const sendgridAPIkey='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';
 
-sgMail.setApiKey(sendgridAPIkey);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // sgMail.send({
 // 	to:"jupower1620@gmail.com",
